@@ -57,28 +57,144 @@ end thunderbird_fsm_tb;
 architecture test_bench of thunderbird_fsm_tb is 
 	
 	component thunderbird_fsm is 
---	  port(
-		
---	  );
+    port (
+        i_clk, i_reset  : in    std_logic;
+        i_left, i_right : in    std_logic;
+        o_lights_L      : out   std_logic_vector(2 downto 0);
+        o_lights_R      : out   std_logic_vector(2 downto 0)
+    );
 	end component thunderbird_fsm;
 
 	-- test I/O signals
+	-- Inputs
+	signal w_reset : std_logic := '0';
+	signal w_left : std_logic := '0';
+	signal w_right : std_logic := '0';
+	signal w_clk : std_logic := '0';
 	
-	-- constants
-	
-	
+	-- Outputs
+	signal w_left_light : std_logic_vector(2 downto 0) := "000";
+	signal w_right_light : std_logic_vector(2 downto 0) := "000";
+
+    -- Constants
+    constant k_clk_period : time := 40 ns;
+    
 begin
 	-- PORT MAPS ----------------------------------------
-	
+	uut: thunderbird_fsm port map (
+	       i_clk => w_clk,
+	       i_reset => w_reset,
+	       i_left => w_left,
+	       i_right => w_right,
+	       o_lights_L => w_left_light,
+	       o_lights_R => w_right_light
+	      );
 	-----------------------------------------------------
 	
 	-- PROCESSES ----------------------------------------	
     -- Clock process ------------------------------------
-    
+    clk_proc : process
+    begin
+        w_clk <= '0';
+        wait for k_clk_period/2;
+        w_clk <= '1';
+        wait for k_clk_period/2;
+    end process;
 	-----------------------------------------------------
 	
 	-- Test Plan Process --------------------------------
-	
-	-----------------------------------------------------	
-	
+	sim_proc: process
+	begin
+	   -- sequential timing
+	   -- reset test
+	   w_reset <= '1';
+	   wait for k_clk_period*1;
+	       assert w_left_light = "000" report "bad reset left" severity failure;
+	       assert w_right_light = "000" report "bad reset right" severity failure;
+	   
+	   w_reset <= '0';
+	   wait for k_clk_period*1;
+	   
+	   -- both left and right
+	   w_left <= '1';
+	   w_right <= '1';
+	   wait for k_clk_period*1;
+	       assert w_left_light = "111" report "bad hazards on left" severity failure;
+	       assert w_right_light = "111" report "bad hazards on right" severity failure;
+	   -- blinks off if input held
+	   wait for k_clk_period*1;
+	       assert w_left_light = "000" report "bad hazards off left" severity failure;
+	       assert w_right_light = "000" report "bad hazards off right" severity failure;
+	   -- blinks back on if input held
+	   wait for k_clk_period*1;
+	       assert w_left_light = "111" report "bad hazards on left" severity failure;
+	       assert w_right_light = "111" report "bad hazards on right" severity failure;
+	   
+	   -- back to off if released
+	   w_left <= '0';
+	   w_right <= '0';
+	   wait for k_clk_period*1;
+	       assert w_left_light = "000" report "bad hazards off left" severity failure;
+	       assert w_right_light = "000" report "bad hazards off right" severity failure;
+	   
+	   -- stay off
+	   wait for k_clk_period*1;
+	       assert w_left_light = "000" report "bad hazards off left" severity failure;
+	       assert w_right_light = "000" report "bad hazards off right" severity failure;
+	   
+	   -- turn left
+	   w_left <= '1';
+	   wait for k_clk_period * 1;
+	       assert w_left_light = "001" report "bad left 1" severity failure;
+	   wait for k_clk_period * 1;
+	       assert w_left_light = "011" report "bad left 2" severity failure;
+	   w_left <= '0';
+	   wait for k_clk_period * 1;
+	       assert w_left_light = "111" report "bad left 3" severity failure;
+	   wait for k_clk_period * 1;
+	       assert w_left_light = "000" report "bad left end" severity failure;
+	   
+	   -- turn right
+	   w_right <= '1';
+	   wait for k_clk_period * 1;
+	       assert w_right_light = "001" report "bad right 1" severity failure;
+	   wait for k_clk_period * 1;
+	       assert w_right_light = "011" report "bad right 2" severity failure;
+	   w_right <= '0';
+	   wait for k_clk_period * 1;
+	       assert w_right_light = "111" report "bad right 3" severity failure;
+	   wait for k_clk_period * 1;
+	       assert w_right_light = "000" report "bad right end" severity failure;
+	   
+	   -- turn left interrupted
+	   w_left <= '1';
+	   wait for k_clk_period * 1;
+	       assert w_left_light = "001" report "bad left 1" severity failure;
+	   wait for k_clk_period * 1;
+	       assert w_left_light = "011" report "bad left 2" severity failure;
+	   w_left <= '0';
+	   w_right <= '1';
+	   wait for k_clk_period * 1;
+	       assert w_left_light = "111" report "bad left 3" severity failure;
+	   wait for k_clk_period * 1;
+	       assert w_left_light = "000" report "bad left end" severity failure;
+	   
+	   -- turn right interrupted
+	   w_right <= '1';
+	   wait for k_clk_period * 1;
+	       assert w_right_light = "001" report "bad right 1" severity failure;
+	   wait for k_clk_period * 1;
+	       assert w_right_light = "011" report "bad right 2" severity failure;
+	   w_right <= '0';
+	   w_left <= '1';
+	   wait for k_clk_period * 1;
+	       assert w_right_light = "111" report "bad right 3" severity failure;
+	   w_left <= '0';
+	   wait for k_clk_period * 1;
+	       assert w_right_light = "000" report "bad right end" severity failure;
+	   
+	   wait;
+	end process;
+	-----------------------------------------------------	  
+	   
 end test_bench;
