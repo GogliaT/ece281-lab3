@@ -125,7 +125,7 @@ begin
         );
         
     clkdiv_inst : clock_divider
-        generic map (k_DIV => 6250000)
+        generic map (k_DIV => 12500000)
         port map (
             i_clk => clk,
             i_reset => btnL,

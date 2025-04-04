@@ -128,8 +128,10 @@ begin
         if (rising_edge(i_clk)) then
             if i_reset = '1' then
                 f_Q <= "10000000"; -- Synchronous reset
+            
+            else
+                f_Q <= f_Q_next;
             end if;
-            f_Q <= f_Q_next;
         end if;
         
     end process register_proc;
